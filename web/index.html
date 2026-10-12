@@ -1,0 +1,67 @@
+<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#131926"><title>Follower | Merkezi Takip Geçmişi</title>
+<style>
+:root{color-scheme:dark;--bg:#101520;--card:#1b2433;--line:#324056;--text:#eff3fa;--dim:#a9b7ca;--blue:#8baeff;--red:#ff9d9d}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,Arial;margin:0}
+main{max-width:1040px;margin:auto;padding:22px 16px 64px}h1{font-size:27px;margin:0}h2{font-size:19px;margin:0 0 12px}h3{font-size:16px;margin:16px 0 6px}p{margin:8px 0}.muted{color:var(--dim)}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.card{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:19px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{border:1px solid var(--line);padding:13px;border-radius:11px}.stat strong{display:block;font-size:27px}
+button{background:var(--blue);color:#101626;border:0;border-radius:8px;padding:10px 15px;cursor:pointer;font:inherit;font-weight:700}
+button.secondary{background:#37455d;color:var(--text)}button:disabled{opacity:.6;cursor:wait}
+input,select{border:1px solid var(--line);background:#121923;color:var(--text);border-radius:8px;padding:11px;width:100%;font:inherit}
+label{display:block;font-size:13px;margin:9px 0;color:var(--dim)}label input{margin-top:6px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.row>*{min-width:0}.hidden{display:none!important}.error{color:var(--red);white-space:pre-wrap}
+.warning{padding:11px;border:1px solid #735348;border-radius:8px;color:#ffceb3;background:#352822}
+.list{list-style:none;margin:0;padding:0;max-height:360px;overflow:auto}.list li{padding:8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+a{color:var(--blue)}table{border-collapse:collapse;min-width:550px;width:100%}td,th{padding:10px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+.scroll{overflow:auto}.tabs{display:flex;flex-wrap:wrap;gap:6px}.tabs button{padding:9px;font-size:13px;background:#37455d;color:var(--dim)}.tabs button.on{background:var(--blue);color:#101626}
+.auth{max-width:490px;margin:7vh auto}.footer{font-size:12px;color:var(--dim);margin-top:25px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.card{padding:14px}.stat strong{font-size:22px}}
+</style></head><body>
+<main>
+<header><div><h1>follower<span style="color:#8baeff">.</span></h1><div class="muted">Merkezi Instagram takip geçmişi • Go + JSON</div></div><button id="logout" class="secondary hidden">Çıkış</button></header>
+<section id="setup" class="card auth hidden">
+<h2>İlk yönetici kurulumu</h2><p class="muted">Kullanıcı adı veya kurulum kodu yok. İlk açılışta yalnızca kendi admin şifreni oluştur.</p>
+<form id="setupForm"><label>Yeni admin şifresi<input id="setupPass" type="password" autocomplete="new-password" required></label><label>Şifre tekrar<input id="setupConfirm" type="password" autocomplete="new-password" required></label><button>Şifremi oluştur</button></form><p id="setupError" class="error"></p>
+<p class="warning">İlk kurulum ekranı internete açıksa, senden önce ulaşan biri admin şifresi oluşturabilir. Paneli yalnızca güvenli bağlantıdan aç.</p>
+</section>
+<section id="login" class="card auth hidden">
+<h2>Admin girişi</h2><form id="loginForm"><label>Şifre<input id="password" type="password" required></label><button>Giriş yap</button></form><p id="loginError" class="error"></p>
+</section>
+<div id="dashboard" class="hidden">
+<section class="card">
+<h2>Instagram hesaplarını takip et</h2>
+<p>Chrome'da Instagram'a giriş yap, Follower eklentisinden <strong>Bu Instagram hesabını tara</strong> düğmesine bas. Her yeni Instagram hesabı, kullanıcı ID'siyle ayrı kaydedilir. Birden fazla hesabın geçmişini aşağıdaki listeden seçip görüntüleyebilirsin.</p>
+<p class="muted">Veriler bu sunucuda JSON olarak tutulur. Başka bilgisayardan admin girişi yaptığında aynı hesaplar görünür. Ekstra erişim anahtarı gerekmez.</p>
+<div class="row"><button id="refresh" class="secondary">Kayıtları yenile</button><span id="refreshMessage" class="muted"></span></div>
+</section>
+<section class="card"><h2>Hesaplar ve sonuçlar</h2>
+<label>Instagram hesabı (kullanıcı adı ve ID)<select id="account"></select></label>
+<div class="stats">
+<div class="stat"><strong id="nFollowers">–</strong><span>Takipçi</span></div>
+<div class="stat"><strong id="nFollowing">–</strong><span>Takip edilen</span></div>
+<div class="stat"><strong id="nBack">–</strong><span>Geri takip yok</span></div>
+<div class="stat"><strong id="nLost">–</strong><span>Takipten çıkan</span></div>
+</div><p id="range" class="muted"></p>
+<div class="tabs" id="tabs">
+<button class="on" data-tab="notFollowingBack">Geri takip etmeyenler</button>
+<button data-tab="unfollowedYou">Takipten çıkanlar</button>
+<button data-tab="newFollowers">Yeni takipçiler</button>
+<button data-tab="followers">Takipçiler</button>
+<button data-tab="following">Takip edilenler</button>
+<button data-tab="youUnfollowed">Takipten çıktıklarım</button>
+</div>
+<label>Ara<input id="search" placeholder="Kullanıcı adı ara"></label><div class="row"><button id="export" class="secondary">CSV indir</button><span id="listCount" class="muted"></span></div>
+<ul id="list" class="list"></ul>
+</section>
+<section class="card"><h2>Tarama geçmişi</h2><div class="scroll"><table><thead><tr><th>Tarih</th><th>Takipçi</th><th>Takip edilen</th><th>Takipten çıkan</th><th>Yeni takipçi</th></tr></thead><tbody id="history"></tbody></table></div></section>
+<section class="card"><h2>Admin şifresini değiştir</h2><form id="changeForm" class="grid">
+<label>Eski şifre<input id="oldPass" type="password" required></label>
+<label>Yeni şifre<input id="newPass" type="password" required></label>
+<label>Yeni şifre tekrar<input id="newConfirm" type="password" required></label>
+<div style="align-self:end"><button>Değiştir</button></div></form><p id="changeMsg" class="muted"></p></section>
+</div>
+<p class="footer">Follower • Otomatik tarama yok. Chrome eklentisi üzerinden manuel tarama yapılır. Sunucuda Playwright, Chromium, Docker veya Node.js gerekmez.</p>
+</main><script src="/app.js"></script></body></html>

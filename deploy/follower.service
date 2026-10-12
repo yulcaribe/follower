@@ -1,0 +1,26 @@
+# Managed by Follower install.sh
+[Unit]
+Description=Follower Go merkezi JSON takip sunucusu
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=follower
+Group=follower
+WorkingDirectory=/opt/follower
+Environment=DATA_DIR=/opt/follower/data
+Environment=HOST=0.0.0.0
+EnvironmentFile=-/etc/follower/follower.env
+ExecStart=/opt/follower/follower
+UMask=0077
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/follower/data
+
+[Install]
+WantedBy=multi-user.target

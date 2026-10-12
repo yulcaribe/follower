@@ -1,0 +1,30 @@
+name: Go and Extension checks
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Shell syntax
+        run: bash -n install.sh uninstall.sh
+      - name: Extension JavaScript
+        run: |
+          node --check extension/popup.js
+          node --check extension/content.js
+          node --check extension/background.js
+          node --check web/app.js
+          python3 -m json.tool extension/manifest.json > /dev/null
+      - name: Go tests
+        run: go test -race ./...
+      - name: Build
+        run: CGO_ENABLED=0 go build -o follower .
+      - name: No server-side browser dependencies
+        run: |
+          test ! -e browser
+          test ! -e deploy/follower-browser.service
+          ! grep -E '(apt-get install.*(chromium|nodejs)|rm -rf.*(chromium|browser|playwright))' install.sh
