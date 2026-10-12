@@ -5,7 +5,7 @@ Chrome eklentisiyle **açık Instagram oturumundaki takipçi ve takip edilenleri
 ## Nasıl çalışır?
 
 - **Instagram hesabı:** Chrome'da Instagram'a normal giriş yap. Eklenti bu oturumla takipçi / takip edilen listesini okur; Instagram parolasını ve çerezlerini Follower sunucusuna göndermez.
-- **Birden fazla hesap:** Tarama verileri **Instagram'ın sayısal kullanıcı ID'sine** göre `accounts/<id>/` altında ayrı saklanır; kullanıcı adı arayüzde gösterilir. Farklı bir Instagram hesabına geçip taradığında yeni kayıt oluşur. Kullanıcı adı değişse bile geçmiş aynı kullanıcı ID'sine bağlı kalır.
+- **Birden fazla profil:** Tarama verileri **açık profilin doğrulanmış sayısal Instagram ID'sine** göre `accounts/<id>/` altında ayrı saklanır; kullanıcı adı arayüzde gösterilir. Kendi hesabına veya erişebildiğin başka profil sayfasına geçip taradığında ayrı kayıt oluşur. Kullanıcı adı değişse bile geçmiş aynı ID altında kalır.
 - **Tek admin girişi:** Follower panelinde admin şifrenle oturum açman yeterlidir. **İkinci erişim anahtarı, API tokenı veya eklenti hesabı yok.** Eklenti taradığı verileri açık ve admin girişi yapılmış Follower sekmesinin oturumu üzerinden kaydeder.
 - **Merkezi veri:** Her şey Go sunucusundaki JSON geçmişinde kalır. İkinci bilgisayarda panele admin şifresiyle girince hesap listeleri ve sonuçlar aynıdır.
 - **Elle tarama:** Tarama yalnızca eklentideki düğmeye basıldığında çalışır. Otomatik tarama, arka plan işi yok.
@@ -31,9 +31,9 @@ Web paneli: `http://SUNUCU_IP:3101`.
 2. Chrome > `chrome://extensions` > **Geliştirici modu** > **Paketlenmemiş öğe yükle** > `extension/` klasörünü seç.
 3. Eklentide **Follower sunucu adresini** (`http://SUNUCU_IP:3101`) bir defa kaydet; Chrome'un bu siteye erişim iznini ver. **Şifre veya ikinci anahtar yazılmaz.**
 4. **Admin paneli** düğmesiyle Follower'ı aç, admin şifresiyle giriş yap ve panel sekmesini açık tut.
-5. Chrome'da `instagram.com` sitesine giriş yap. Eklentiden **Bu Instagram hesabını tara** düğmesine bas. Kullanıcı adı Instagram sayfasındaki profil bağlantısından okunamazsa, eklentideki isteğe bağlı kullanıcı adı alanına kendi hesabının adını gir. Tarama öncesinde `/api/v1/users/{id}/info/` isteği artık yapılmaz.
+5. Chrome'da Instagram'a giriş yap; taramak istediğin kişinin **profil sayfasına** (`instagram.com/kullaniciadi/`) git ve eklentiden **Açık profili tara** düğmesine bas. Kullanıcı adı elle yazılmaz. Başka hesapların listesi için hedef ID, profil bilgisinden ayrıca doğrulanır. Instagram bu sorguyu 429 ile reddederse o profil için tarama yapılmaz; kesinlikle kendi hesabının verileri başka kullanıcı adı altında kaydedilmez.
 6. İki liste tamamlanınca tarama, admin oturumu açık Follower panelinin aynı-origin `/api/scan` uç noktasından JSON olarak kaydedilir.
-7. Başka Instagram hesabını taramak için Instagram'da hesaba geç ve aynı düğmeye bas. Web panelindeki hesap listesinden istediğinin geçmişini seç.
+7. Başka profili taramak için Instagram'da o profilin bağlantısını açıp aynı düğmeye bas. Gizli veya erişimi sınırlandırılmış hesapların listesi alınamayabilir. Web panelindeki hesap listesinden geçmişini seç.
 
 İkinci bilgisayardan sonuçları **görmek** için Follower paneline admin girişi yeterlidir. Yeni tarama yapacaksan o bilgisayarda da eklenti ve Instagram oturumu gerekir.
 

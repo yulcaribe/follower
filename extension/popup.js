@@ -58,9 +58,7 @@ $('scan').onclick=async()=>{
   if(!tab?.id)throw Error('Önce Instagram sekmesini açıp hesabına giriş yap.');
   await chrome.storage.session.set({scanStatus:{running:true,phase:'Başlıyor',at:Date.now()}});
   await updateStatus();
-  const username=$('igUsername').value.trim().replace(/^@/,'');
-  if(username&&!/^[A-Za-z0-9._]{1,30}$/.test(username))throw Error('Instagram kullanıcı adını kontrol et.');
-  const result=await chrome.tabs.sendMessage(tab.id,{type:'START_SCAN',username});
+  const result=await chrome.tabs.sendMessage(tab.id,{type:'START_SCAN'});
   if(!result?.ok)throw Error(result?.error||'Instagram sekmesini yenileyip tekrar dene.');
  }catch(err){
   await chrome.storage.session.set({scanStatus:{running:false,error:String(err.message||err),at:Date.now()}});

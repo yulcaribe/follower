@@ -14,47 +14,61 @@ const headers=()=>({
 
 // Never require /api/v1/users/{id}/info/ to begin a scan: it can return 429
 // even when a regular Instagram login is still valid.
-function usernameInNavigation(){
- for(const a of document.querySelectorAll('a[href]')){
-  const icon=a.querySelector('svg[aria-label="Profile"], svg[aria-label="Profil"]');
-  const label=a.getAttribute('aria-label')||'';
-  // Restrict image-based detection to the navigation area to avoid feed avatars.
-  const image=a.closest('nav') ? a.querySelector('img[alt]') : null;
-  if(!icon&&!/^(Profile|Profil)$/i.test(label)&&!image)continue;
-  const href=a.getAttribute('href')||'';
-  let pathname;
-  try{const u=new URL(href,location.origin);if(u.origin!==location.origin)continue;pathname=u.pathname}
+// Scans are bound to the exact Instagram profile currently open in this tab.
+// The viewer cookie is NEVER a substitute for a different profile's ID.
+function profileFromURL(){
+ const match=location.pathname.match(/^\/([A-Za-z0-9._]{1,30})\/?$/);
+ const username=match?.[1]||'';
+ const reserved=new Set(['accounts','explore','direct','reels','stories','p','reel','tv','about','developer','legal','privacy','challenge','api','web','graphql','static']);
+ if(!validUsername(username)||reserved.has(username.toLowerCase()))
+  throw Error('Taramak istediğin Instagram profilini aç (instagram.com/kullaniciadi/). Ana sayfa veya gönderi sayfası taranamaz.');
+ return username;
+}
+function ownProfileInNavigation(username){
+ for(const link of document.querySelectorAll('a[href]')){
+  const href=link.getAttribute('href')||'';
+  let p;
+  try{const u=new URL(href,location.origin);if(u.origin!==location.origin)continue;p=u.pathname}
   catch{continue}
-  const match=pathname.match(/^\/([A-Za-z0-9._]{1,30})\/?$/);
-  if(!match)continue;
-  const username=match[1];
-  if(['accounts','explore','direct','reels','stories','p'].includes(username.toLowerCase()))continue;
-  if(icon||/^(Profile|Profil)$/i.test(label))return username;
-  if(image){
-   const alt=image.getAttribute('alt')||'';
-   if(/profile picture|profil fotoğraf|profil resmi/i.test(alt))return username;
-  }
+  if(p.toLowerCase()!=='/'+username.toLowerCase()+'/')continue;
+  const icon=link.querySelector('svg[aria-label="Profile"],svg[aria-label="Profil"]');
+  const label=link.getAttribute('aria-label')||'';
+  if(icon||/^(Profile|Profil)$/i.test(label))return true;
  }
- return '';
+ // Instagram's own-profile header often contains an Edit Profile control.
+ // Its presence is useful confirmation but absence must not be guessed at.
+ const header=document.querySelector('main header');
+ if(!header)return false;
+ for(const el of header.querySelectorAll('a[href],button')){
+  const href=el.getAttribute('href')||'';
+  const label=((el.getAttribute('aria-label')||'')+' '+(el.textContent||'')).trim();
+  if(/^\/accounts\/edit\/?/.test(href)||/^(edit profile|profili düzenle)$/i.test(label))return true;
+ }
+ return false;
 }
-function resolveUsername(provided){
- const fromPanel=String(provided||'').trim().replace(/^@/,'');
- if(fromPanel&&!validUsername(fromPanel))throw Error('Instagram kullanıcı adı geçersiz.');
- const fromNavigation=usernameInNavigation();
- if(fromPanel&&fromNavigation&&fromPanel.toLowerCase()!==fromNavigation.toLowerCase())
-  throw Error('Yazdığın kullanıcı adı Instagram oturumunun profil bağlantısıyla eşleşmiyor.');
- const name=fromNavigation||fromPanel;
- if(!name)throw Error('Instagram kullanıcı adı sayfadan okunamadı. Eklentide kullanıcı adını girip yeniden dene.');
- return name;
+async function resolveTargetAccount(){
+ const username=profileFromURL();
+ const viewerID=decodeURIComponent(cookie('ds_user_id')||'');
+ if(!validID(viewerID))throw Error('Önce Instagram hesabına giriş yap.');
+ if(ownProfileInNavigation(username))return {id:viewerID,username};
+ // A visited profile is not necessarily the signed-in profile.
+ // Resolve target ID by username instead of accidentally assigning viewerID.
+ const result=await igJSON('/api/v1/users/web_profile_info/?username='+encodeURIComponent(username),'profil');
+ const user=result?.data?.user;
+ const id=String(user?.id??user?.pk??'');
+ const canonical=String(user?.username??'');
+ if(!validID(id)||!validUsername(canonical)||canonical.toLowerCase()!==username.toLowerCase())
+  throw Error('Açık profilin Instagram ID ve kullanıcı adı doğrulanamadı; yanlış hesaba kayıt yapılmadı.');
+ return {id,username:canonical};
 }
-async function igJSON(path){
+async function igJSON(path,purpose="takip listesi"){
  const res=await fetch('https://www.instagram.com'+path,{credentials:'include',headers:headers()});
  if(res.status===429){
   const after=res.headers.get('retry-after');
   const hint=after&&/^\d{1,6}$/.test(after)?' Instagram '+after+' saniye beklenmesini istiyor.':'';
-  throw Error('Instagram takip listesi isteğini 429 (hız sınırı) ile reddetti.'+hint+' Tarama durduruldu, eksik veri kaydedilmedi.');
+  throw Error('Instagram '+purpose+' isteğini 429 (hız sınırı) ile reddetti.'+hint+' Tarama durduruldu, eksik veri kaydedilmedi.');
  }
- if(!res.ok)throw Error('Instagram takip listesi HTTP '+res.status+'; oturum veya erişim reddedildi.');
+ if(!res.ok)throw Error('Instagram '+purpose+' HTTP '+res.status+'; oturum veya erişim reddedildi.');
  const type=res.headers.get('content-type')||'';
  if(!type.toLowerCase().includes('json'))throw Error('Instagram JSON yerine doğrulama/engelleme sayfası döndürdü; tarama kaydedilmedi.');
  const result=await res.json();
@@ -96,12 +110,10 @@ async function fetchList(id,kind,report){
  }
  throw Error('Instagram liste sayfalama sınırı aşıldı; eksik sonuç reddedildi.');
 }
-async function runScan(report,providedUsername=''){
- const id=decodeURIComponent(cookie('ds_user_id')||'');
- if(!validID(id))throw Error('Instagram oturumu bulunamadı. instagram.com üzerinden normal giriş yap.');
- const username=resolveUsername(providedUsername);
- // The ID is taken from the actual signed-in Instagram session, never from the user input.
- const account={id,username};
+async function runScan(report){
+ const account=await resolveTargetAccount();
+ const {id}=account;
+ const initialPath=location.pathname;
  const following=await fetchList(id,'following',report);
  await wait(1500);
  const followers=await fetchList(id,'followers',report);
@@ -109,6 +121,8 @@ async function runScan(report,providedUsername=''){
  // from Instagram silently blocking a private endpoint. Do not publish it as truth.
  if(!following.length||!followers.length)
   throw Error('Instagram boş liste döndürdü; eksik veri riskinden dolayı geçmişe kaydedilmedi.');
+ if(location.pathname!==initialPath)
+  throw Error('Tarama sırasında profil sayfası değişti; veriler kaydedilmedi.');
  return {account,followers,following};
 }
 const notify=async message=>{
@@ -122,7 +136,7 @@ chrome.runtime.onMessage.addListener((message,_sender,respond)=>{
  respond({ok:true});
  (async()=>{
   try{
-   const data=await runScan(progress=>notify({type:'SCAN_PROGRESS',progress}),message.username);
+   const data=await runScan(progress=>notify({type:'SCAN_PROGRESS',progress}));
    const answer=await notify({type:'SAVE_SCAN',snapshot:data});
    if(answer?.error)throw Error(answer.error);
   }catch(err){
