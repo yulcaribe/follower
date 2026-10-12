@@ -31,7 +31,7 @@ Web paneli: `http://SUNUCU_IP:3101`.
 2. Chrome > `chrome://extensions` > **Geliştirici modu** > **Paketlenmemiş öğe yükle** > `extension/` klasörünü seç.
 3. Eklentide **Follower sunucu adresini** (`http://SUNUCU_IP:3101`) bir defa kaydet; Chrome'un bu siteye erişim iznini ver. **Şifre veya ikinci anahtar yazılmaz.**
 4. **Admin paneli** düğmesiyle Follower'ı aç, admin şifresiyle giriş yap ve panel sekmesini açık tut.
-5. Chrome'da `instagram.com` sitesine giriş yap. Eklentiden **Bu Instagram hesabını tara** düğmesine bas.
+5. Chrome'da `instagram.com` sitesine giriş yap. Eklentiden **Bu Instagram hesabını tara** düğmesine bas. Kullanıcı adı Instagram sayfasındaki profil bağlantısından okunamazsa, eklentideki isteğe bağlı kullanıcı adı alanına kendi hesabının adını gir. Tarama öncesinde `/api/v1/users/{id}/info/` isteği artık yapılmaz.
 6. İki liste tamamlanınca tarama, admin oturumu açık Follower panelinin aynı-origin `/api/scan` uç noktasından JSON olarak kaydedilir.
 7. Başka Instagram hesabını taramak için Instagram'da hesaba geç ve aynı düğmeye bas. Web panelindeki hesap listesinden istediğinin geçmişini seç.
 
@@ -53,7 +53,7 @@ Eklenti yerel depoda **yalnızca sunucu adresini** saklar. Takipçi listeleri / 
 
 Mevcut **HTTP bağlantısı şifreli değildir**. Admin şifresi ve takipçi verileri ağ üzerinde korunmaz. Ayrıca kurulum kodu kaldırıldığı için ilk ziyaret eden kişi admin şifresini belirleyebilir; ilk kurulumu korumalı ağda gerçekleştirin. Bu nedenle korumasız ağlarda kullanmayın; mümkünse özel ağ/tünel kullanın. Kurulum sertifika talep etmez.
 
-Instagram'ın `/api/v1/friendships/{id}/following/` ve `/api/v1/friendships/{id}/followers/` gibi resmî olmayan web uç noktaları değişebilir veya hız sınırı uygulayabilir. Eksik / hatalı liste geçmişe kaydedilmez. Canlı Instagram taraması henüz ayrıca doğrulanmalıdır.
+Instagram'ın `/api/v1/friendships/{id}/following/` ve `/api/v1/friendships/{id}/followers/` gibi resmî olmayan web uç noktaları değişebilir veya hız sınırı uygulayabilir. Instagram'ın 429 yanıtı tüm API'leri etkileyebilir; kullanıcı profili için gereksiz istek kaldırılmış olsa da takipçi listeleri 429 dönerse tarama durdurulur. Eksik / hatalı liste geçmişe kaydedilmez. Canlı Instagram taraması henüz ayrıca doğrulanmalıdır.
 
 ## Geliştirme
 

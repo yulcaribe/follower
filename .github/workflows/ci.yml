@@ -16,6 +16,8 @@ jobs:
         run: |
           node --check extension/popup.js
           node --check extension/content.js
+          node --check extension/content.test.cjs
+          node --test extension/content.test.cjs
           node --check extension/background.js
           node --check web/app.js
           python3 -m json.tool extension/manifest.json > /dev/null
