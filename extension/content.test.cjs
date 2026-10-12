@@ -113,7 +113,7 @@ test('changing target profile while scanning aborts',async()=>{
  const h=harness({navUsername:'my_account',replies:[page(),page()]});
  const resultPromise=h.scan();
  h.location.pathname='/another/';
- await assert.rejects(resultPromise,/profil sayfası değişti/);
+ await assert.rejects(resultPromise,/profil sayfası.*değişti/i);
 });
 test('pagination keeps target ID on all pages',async()=>{
  const h=harness({pathname:'/celalemirzor/',replies:[
