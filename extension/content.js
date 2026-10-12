@@ -111,9 +111,12 @@ async function fetchList(id,kind,report){
  throw Error('Instagram liste sayfalama sınırı aşıldı; eksik sonuç reddedildi.');
 }
 async function runScan(report){
+ // Lock the visible profile before awaiting ID resolution or network requests.
+ const initialPath=location.pathname;
  const account=await resolveTargetAccount();
  const {id}=account;
- const initialPath=location.pathname;
+ if(location.pathname!==initialPath)
+  throw Error('Profil sayfası tarama başlamadan değişti; kayıt yapılmadı.');
  const following=await fetchList(id,'following',report);
  await wait(1500);
  const followers=await fetchList(id,'followers',report);
